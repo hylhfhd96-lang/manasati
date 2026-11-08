@@ -556,7 +556,7 @@
   function getDb(){ if(!_dbPromise) _dbPromise = (window.claude && window.claude.use) ? window.claude.use('db') : Promise.resolve(null); return _dbPromise; }
 
   // ===== الربط مع Google Sheets (الصقي رابط Apps Script هنا) =====
-  const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwydef-gVN-3_YpsHZw8OdIB9vlMcTGx97tS_c8_6GM53Ueu4lsYyCl4N_4_eBRGWpUfw/exec';
+  const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxNHRFXiXXGpJNw_btVG_7x2e07BPfe-YvdBFTfdzdUNWEUmMH1GoW_rXou6bFYMZmSxg/exec';
   function sheetOn(){ return !!SHEET_URL; }
   function sheetPost(type, data){
     if(!sheetOn()) return;
@@ -1226,8 +1226,15 @@
       </div>`;
     }).join('');
   }
+  async function loadShared(kind, local){
+    const sr = await sheetGet(kind);
+    if(!(sr && Array.isArray(sr.rows))) return local;
+    const list = sr.rows.slice().reverse();
+    const seen = {}; list.forEach(function(x){ seen[x.text]=1; });
+    (local||[]).forEach(function(x){ if(!seen[x.text] && Date.now()-new Date(x.date).getTime() < 180000) list.push(x); });
+    return list;
+  }
   window.openComments = function(){
-    if(userRole!=='teacher'){ showToast('هذا القسم خاص بالمعلمة'); return; }
     switchView('commentsView');
     $('commentsArea').innerHTML = `
       <div class="q-card" style="margin-bottom:14px;">
@@ -1235,7 +1242,8 @@
         <button class="primary-btn" data-action="addComment" style="margin-top:10px;">إضافة تعليق</button>
       </div>
       <h4 style="font-size:13px;margin:10px 0 6px;">التعليقات المسجّلة</h4>
-      ${renderFeedbackList(comments)}`;
+      <div id="commentsList">${renderFeedbackList(comments)}</div>`;
+    loadShared('comments', comments).then(function(l){ const e=$('commentsList'); if(e) e.innerHTML=renderFeedbackList(l); });
   };
   window.addComment = async function(){
     const ta = $('newCommentText');
@@ -1245,10 +1253,9 @@
     sheetPost('comment',{ text });
     await safeSet('comments-107', JSON.stringify(comments));
     showToast('تم حفظ التعليق ✓');
-    openComments();
+    openComments(); setTimeout(function(){ if($('commentsList')) openComments(); }, 2500);
   };
   window.openParentFeedback = function(){
-    if(userRole!=='teacher'){ showToast('هذا القسم خاص بالمعلمة'); return; }
     switchView('parentView');
     $('parentArea').innerHTML = `
       <div class="q-card" style="margin-bottom:14px;">
@@ -1256,7 +1263,8 @@
         <button class="primary-btn" data-action="addParentFeedback" style="margin-top:10px;">إرسال الرأي</button>
       </div>
       <h4 style="font-size:13px;margin:10px 0 6px;">آراء مسجّلة</h4>
-      ${renderFeedbackList(parentFeedback)}`;
+      <div id="parentList">${renderFeedbackList(parentFeedback)}</div>`;
+    loadShared('parents', parentFeedback).then(function(l){ const e=$('parentList'); if(e) e.innerHTML=renderFeedbackList(l); });
   };
   window.addParentFeedback = async function(){
     const ta = $('newParentText');
@@ -1266,7 +1274,7 @@
     sheetPost('parent',{ text });
     await safeSet('parent-feedback-107', JSON.stringify(parentFeedback));
     showToast('تم إرسال الرأي ✓');
-    openParentFeedback();
+    openParentFeedback(); setTimeout(function(){ if($('parentList')) openParentFeedback(); }, 2500);
   };
 
   window.openReports = function(){
@@ -1281,7 +1289,7 @@
     });
     const totalAttempts = history.length;
     const overallAvg = totalAttempts ? Math.round(history.reduce((s,i)=>s+i.pct,0)/totalAttempts) : 0;
-    let html = `<div class="stat-cards">
+    let html = `<div id="impactPublic"></div><h4 style="font-size:13px;margin:6px 0 8px;">نتائجي على هذا الجهاز</h4><div class="stat-cards">
         <div class="sc"><b>${totalAttempts}</b><span>محاولات كلية</span></div>
         <div class="sc"><b>${overallAvg}%</b><span>متوسط عام</span></div>
       </div>`;
@@ -1300,6 +1308,12 @@
       });
     }
     $('reportsArea').innerHTML = html;
+    sheetGet('impact').then(function(im){
+      const e = $('impactPublic'); if(!e || !im || typeof im.total==='undefined') return;
+      let h = '<div class="q-card" style="margin-bottom:14px;"><h4 style="font-size:14px;margin:0 0 8px;">📊 أثر المنصة — جميع الطالبات</h4><div class="stat-cards"><div class="sc"><b>'+im.students+'</b><span>طالبات شاركن</span></div><div class="sc"><b>'+im.total+'</b><span>محاولات</span></div><div class="sc"><b>'+im.avg+'%</b><span>المتوسط العام</span></div></div>';
+      (im.cats||[]).forEach(function(c){ h += '<div class="bar-row"><div class="top"><span>'+esc(c.label)+'</span><span>'+c.avg+'% ('+c.count+' محاولة)</span></div><div class="bar-bg"><div class="bar-fill" style="width:'+c.avg+'%"></div></div></div>'; });
+      e.innerHTML = h + '</div>';
+    });
   };
 
   window.openPlan = function(){
