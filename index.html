@@ -323,7 +323,7 @@
   .vbtn{align-self:center;border:0;border-radius:99px;padding:8px 14px;background:#f3d567;color:#0b2545;font:inherit;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap}
   #vidModal{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:14px}
   #vidModal.on{display:flex}
-  #vidModal video{width:100%;max-width:760px;border-radius:14px;background:#000}
+  #vidModal iframe{width:100%;max-width:760px;aspect-ratio:16/9;border:0;border-radius:14px;background:#000}
   #vidModal .vx{border:0;border-radius:99px;padding:10px 26px;background:#fff;font:inherit;font-weight:800;cursor:pointer}
   .plan-step h5 { margin:0 0 3px; font-size:13.5px; }
   .plan-step p { margin:0; font-size:12px; color:var(--muted); }
@@ -1391,7 +1391,8 @@
   const EXAM_MODEL_COUNT = 20;
   const EXAM_UNLOCK_DAYS = 15;
   const MODEL_NAMES = ['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر','الحادي عشر','الثاني عشر','الثالث عشر','الرابع عشر','الخامس عشر','السادس عشر','السابع عشر','الثامن عشر','التاسع عشر','العشرون'];
-  const VIDEO_COUNT = 0;
+  const YT_IDS = ["hL3gMfZk7aI", "hDQN1hd1nX4", "7A1Kn5yb1Bo", "P66YiQWvt0w", "xw1BICB2QTU", "28gvBvz7yr4", "PIK0CI9D4yA", "vlalfcTRP3Q", "tJl7RylK7cw", "M8bOlbL63Uk", "YQqx5Wo6wOc", "SqC0SJcRRPw", "ZItqjpUAARg", "kSUgz0xrueQ", "2_BmgqO5Rb0", "szL7K8yGoek", "lRhJkTzp2FM", "jtFqS_bJEr4", "e2Aud_vsQNI", "GJgOCiSmSaw"];
+  const VIDEO_COUNT = YT_IDS.length;
   const MODEL_COLORS = ['#2e9e6b','#8a5fc9','#d9455f','#3b7dd8','#e0598c','#e08a2e','#c9a24a','#2eb0a6','#6b6fd1','#d97b2e','#2e9ecb'];
   function buildExamBatches(){
     const pool = QUDRAT.concat(MEZLA);
@@ -1846,13 +1847,14 @@
     window.goBack();
   });
   window.playModelVideo = function(n){
-    const m=document.getElementById('vidModal'),v=document.getElementById('vidEl');
+    const m=document.getElementById('vidModal'),f=document.getElementById('vidEl'),id=YT_IDS[n-1]; if(!id) return;
     document.getElementById('vidTitle').textContent='شرح النموذج '+MODEL_NAMES[n-1];
-    v.src='videos/m'+n+'.mp4'; m.classList.add('on'); try{v.play();}catch(e){}
+    f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0&playsinline=1';
+    document.getElementById('vidYt').href='https://youtu.be/'+id; m.classList.add('on');
   };
   document.addEventListener('click',function(e){
     const m=document.getElementById('vidModal'); if(!m||!m.classList.contains('on')) return;
-    if(e.target===m || e.target.id==='vidClose'){ const v=document.getElementById('vidEl'); v.pause(); v.removeAttribute('src'); v.load(); m.classList.remove('on'); }
+    if(e.target===m || e.target.id==='vidClose'){ document.getElementById('vidEl').src='about:blank'; m.classList.remove('on'); }
   });
   window.goHome = function(){ clearInterval(quiz.timerId); switchView('home'); };
 
@@ -1896,6 +1898,6 @@
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',build); else build();
 })();
 </script>
-<div id="vidModal"><div id="vidTitle" style="color:#fff;font-weight:800;font-size:16px"></div><video id="vidEl" controls playsinline preload="none"></video><button class="vx" id="vidClose">إغلاق ✕</button></div>
+<div id="vidModal"><div id="vidTitle" style="color:#fff;font-weight:800;font-size:16px"></div><iframe id="vidEl" title="فيديو الشرح" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><a class="vx" id="vidYt" href="#" target="_blank" rel="noopener" style="text-decoration:none;color:#111">فتح في يوتيوب ↗</a><button class="vx" id="vidClose">إغلاق ✕</button></div></div>
 </body>
 </html>
